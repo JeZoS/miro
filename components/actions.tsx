@@ -24,7 +24,7 @@ interface ActionsProps {
   sideOffset?: DropdownMenuContentProps["sideOffset"];
 }
 
-export const Acitons = ({ children, id, title, side, sideOffset }: ActionsProps) => {
+export const Actions = ({ children, id, title, side, sideOffset }: ActionsProps) => {
   const { onOpen } = useRenameModal();
 
   const onCopyLink = () => {

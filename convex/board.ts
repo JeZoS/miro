@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 const images = [
   "/placeholders/1.svg",
@@ -49,6 +49,17 @@ export const remove = mutation({
       throw new Error("Unauthorized");
     }
 
+    const userId = identity.subject;
+
+    const existingFavorite = await ctx.db
+      .query("userFavorites")
+      .withIndex("by_user_board", (q) => q.eq("userId", userId).eq("boardId", args.id))
+      .unique();
+
+    if (existingFavorite) {
+      await ctx.db.delete(existingFavorite._id);
+    }
+
     await ctx.db.delete(args.id);
   },
 });
@@ -76,7 +87,7 @@ export const update = mutation({
 
 export const favorite = mutation({
   args: {
-    boardId: v.id("boards"),
+    id: v.id("boards"),
     orgId: v.string(),
   },
   handler: async (ctx, args) => {
@@ -85,7 +96,7 @@ export const favorite = mutation({
       throw new Error("Unauthorized");
     }
 
-    const board = await ctx.db.get(args.boardId);
+    const board = await ctx.db.get(args.id);
 
     if (!board) {
       throw new Error("Board not found");
@@ -95,9 +106,7 @@ export const favorite = mutation({
 
     const existingFavorite = await ctx.db
       .query("userFavorites")
-      .withIndex("by_user_board_org", (q) =>
-        q.eq("userId", userId).eq("boardId", board._id).eq("orgId", args.orgId)
-      )
+      .withIndex("by_user_board", (q) => q.eq("userId", userId).eq("boardId", board._id))
       .unique();
 
     if (existingFavorite) {
@@ -117,7 +126,7 @@ export const favorite = mutation({
 
 export const unfavorite = mutation({
   args: {
-    boardId: v.id("boards"),
+    id: v.id("boards"),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -125,7 +134,7 @@ export const unfavorite = mutation({
       throw new Error("Unauthorized");
     }
 
-    const board = await ctx.db.get(args.boardId);
+    const board = await ctx.db.get(args.id);
 
     if (!board) {
       throw new Error("Board not found");
@@ -135,7 +144,7 @@ export const unfavorite = mutation({
 
     const favorite = await ctx.db
       .query("userFavorites")
-      .withIndex("by_user_board", (q) => q.eq("userId", userId).eq("boardId", args.boardId))
+      .withIndex("by_user_board", (q) => q.eq("userId", userId).eq("boardId", args.id))
       .unique();
 
     if (!favorite) {
@@ -143,5 +152,15 @@ export const unfavorite = mutation({
     }
 
     await ctx.db.delete(favorite._id);
+  },
+});
+
+export const get = query({
+  args: {
+    id: v.id("boards"),
+  },
+  handler: async (ctx, args) => {
+    const board = await ctx.db.get(args.id);
+    return board;
   },
 });
